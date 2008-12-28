@@ -1,13 +1,19 @@
 ## Interface: 30000
 
 ## Title: ToneDeaf
-## Notes: Minimalistic addon that plays sounds when combo points are landed. Rogues and Druids (cat) only.
+## Notes: Minimalistic addon that plays sounds when certain combat events happen.
 ## Author: Quaiche
 ## Version: 1.0
+## OptionalDeps: tekDebug
 ## X-License: Apache 2.0
-## X-Credits: Sounds borrowed from the now defunct ComboSounds
+## X-Credits: Cat/rogue sounds borrowed from the now defunct ComboSounds
 ## X-Category: Combat
 
+## LoadManagers: AddonLoader
+## X-LoadOn-Class: Rogue
+## X-LoadOn-Class: Druid
+
+Dongle.lua
 tekKonfigAboutPanel.lua
-SimpleTones.lua
+ToneDeaf.lua
 

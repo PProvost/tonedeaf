@@ -16,67 +16,88 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ]]
 
+assert(DongleStub, "DongleStub Not Found!")
+
 local addonName = "ToneDeaf"
+local freq = 0.1
 
-local function Print(...) 
-	DEFAULT_CHAT_FRAME:AddMessage(string.join(" ", "|cFF33FF99"..addonName.."|r:", ...)) 
-end
-
+--[[ Only for druids and rogues ]]
 local class = select(2, _G.UnitClass("player"))
 if class ~= "ROGUE" and class ~= "DRUID" then
 	DisableAddOn(addonName)
-	Print("This class is not supported. Addon disabled")
+	DEFAULT_CHAT_FRAME:AddMessage("|cFF33FF99"..addonName.."|r: This class is not supported. Addon disabled")
+	return
 end
 
-local f = CreateFrame("Frame")
-f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
+--[[ Functions called in OnUpdate made local for perf ]]
+local tostring = _G.tostring
+local GetComboPoints = _G.GetComboPoints
+local GetSpellCooldown = _G.GetSpellCooldown
+local IsUsableSpell = _G.IsUsableSpell
+local IsSpellInRange = _G.IsSpellInRange
+local PlaySoundFile = _G.PlaySoundFile
 
-function f:UNIT_COMBO_POINTS()
-	if arg1 == "player" then
-		local points = GetComboPoints("player")
+--[[ Main addon declaration ]]
+ToneDeaf = DongleStub("Dongle-1.1"):New(addonName)
+
+function ToneDeaf:Initialize()
+	if tekDebug then self:EnableDebug(1, tekDebug:GetFrame(addonName)) end
+	self.inCombat = false
+	self.soundPlayed = false
+end
+
+local function CheckCooldownsAndPoints(name, self)
+	self:Debug(1, "Checking cooldowns and points")
+
+	if not self.inCombat then return end 
+	local points = GetComboPoints("player")
+
+	-- TODO: Pick the right spell
+	-- Spells
+	--   Rogues: Backstab/Mutil/SS and Rupture
+	--   Druids: Mangle and Rip
+
+	if self:IsSpellReady("Mangle - Cat") and not self.soundPlayed then
+		self:Debug(1, "Playing sound. CP="..tostring(points))
+		self.soundPlayed = true
 		PlaySoundFile("Interface\\Addons\\"..addonName.."\\Sounds\\S"..points..".wav")
+	else
+		self:Debug(1, "Spell not ready. CP="..tostring(points))
 	end
 end
 
-function f:PLAYER_LOGIN()
+function ToneDeaf:Enable()
 	LibStub("tekKonfig-AboutPanel").new(nil, addonName)
-	self:RegisterEvent("UNIT_COMBO_POINT")
+
+	self:RegisterEvent("UNIT_COMBO_POINTS")
+	self:RegisterEvent("PLAYER_REGEN_DISABLED")
+	self:RegisterEvent("PLAYER_REGEN_ENABLED")
+
+	self:Debug(1, "ToneDeaf enabled")
 end
 
-if IsLoggedIn() then f:PLAYER_LOGIN() else f:RegisterEvent("PLAYER_LOGIN") end
-f:RegisterEvent("UNIT_COMBO_POINTS")
-
---[[ TODO - Play the sound when the main spell cools down
-
-Basically call IsSpellUsable("spellname") on a timer.
-
-Here's Mikma's simple timer code:
-
-local total,desired,myfunc
-local function onUpdate(self,elapsed)
-    total = total + elapsed
-    if total >= desired then
-        pcall(myfunc)
-        self:SetScript("OnUpdate", nil)
-    end
+function ToneDeaf:IsSpellReady(spellname)
+	local cd = select(2, GetSpellCooldown(spellname, BOOKTYPE_SPELL))
+	return IsUsableSpell(spellname) and (IsSpellInRange(spellname,"target") == 1) and (cd <= 0)
 end
 
-local timer = CreateFrame("Frame")
-
-local function SetTimer(time,func)
-    desired,myfunc,total = time,func,0
-    timer:SetScript("OnUpdate", onUpdate)
+--[[ Combo points handler ]]
+function ToneDeaf:UNIT_COMBO_POINTS()
+	self.soundPlayed = false
 end
 
-And here's the IsReady code from ComboSounds:
+--[[ Entering combat ]]
+function ToneDeaf:PLAYER_REGEN_DISABLED()
+	self.inCombat = true
+	self:ScheduleRepeatingTimer("TONEDEAF_TIMER", CheckCooldownsAndPoints, freq, self)
+	self:Debug(1, "Entering combat.")
+end
 
-	-- See if the spell is ready.
-	local _, cooldown, _ = GetSpellCooldown(spellID, BOOKTYPE_SPELL);
-	local spellReady =	IsUsableSpell(usableSpell) and 
-						(1 == IsSpellInRange(usableSpell, "target")) and
-						cooldown <= 0;
+--[[ Leaving combat ]]
+function ToneDeaf:PLAYER_REGEN_ENABLED()
+	self.inCombat = false
+	self.soundPlayed = false
+	self:CancelTimer("TONEDEAF_TIMER")
+	self:Debug(1, "Leaving combat.")
+end
 
-
-
---
---]]
