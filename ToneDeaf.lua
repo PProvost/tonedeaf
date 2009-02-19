@@ -57,7 +57,9 @@ local function CheckCooldownsAndPoints(name, self)
 	--   Rogues: Backstab/Mutil/SS and Rupture
 	--   Druids: Mangle and Rip
 
-	if self:IsSpellReady("Mangle - Cat") and not self.soundPlayed then
+	local spell = "Mangle - Cat"
+
+	if self:IsSpellReady(spell) and not self.soundPlayed then
 		self:Debug(1, "Playing sound. CP="..tostring(points))
 		self.soundPlayed = true
 		PlaySoundFile("Interface\\Addons\\"..addonName.."\\Sounds\\S"..points..".wav")
@@ -77,8 +79,13 @@ function ToneDeaf:Enable()
 end
 
 function ToneDeaf:IsSpellReady(spellname)
-	local cd = select(2, GetSpellCooldown(spellname, BOOKTYPE_SPELL))
-	return IsUsableSpell(spellname) and (IsSpellInRange(spellname,"target") == 1) and (cd <= 0)
+	local isUsable = select(1, IsUsableSpell(spellname))
+	local inRange = IsSpellInRange(spellname)
+	local cd = select(2, GetSpellCooldown(spellname))
+
+	self:DebugF(1, "isUsable=%d, inRange=%d, cd=%d", isUsable or -1, inRange or -1 , cd or -1)
+
+	return (isUsable==1) and (inRange==1) and (cd == 0)
 end
 
 --[[ Combo points handler ]]
