@@ -1,0 +1,7 @@
+h1. About ToneDeaf
+
+ToneDeaf is a minimalistic audio combo points tracker. Basically as you land combo points on your rogue or catform druid, you hear sounds that let you know easily how many points you have and when it is time to fire off your closing move.
+
+There is currently no configuration, but that is coming shortly.
+
+Credits: ToneDeaf was inspired by the now defunct ComboSounds, from which I borrowed the sound files. 
