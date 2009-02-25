@@ -37,45 +37,57 @@ local IsUsableSpell = _G.IsUsableSpell
 local IsSpellInRange = _G.IsSpellInRange
 local PlaySoundFile = _G.PlaySoundFile
 
---[[ Main addon declaration ]]
 ToneDeaf = DongleStub("Dongle-1.1"):New(addonName)
 
 function ToneDeaf:Initialize()
 	if tekDebug then self:EnableDebug(1, tekDebug:GetFrame(addonName)) end
 	self.inCombat = false
 	self.soundPlayed = false
+	local cmd = self:InitializeSlashCommand(addonName, string.upper(addonName), string.lower(addonName))
+	cmd:RegisterSlashHandler("points <spell_link> - set the combo points spell", "^points (.+)$", "SetComboSpell")
+	cmd:RegisterSlashHandler("closing <spell_link> - set the closing spell", "^closing (.+)$", "SetClosingSpell")
 end
 
-local function CheckCooldownsAndPoints(name, self)
-	self:Debug(1, "Checking cooldowns and points")
+function ToneDeaf:Enable()
+	LibStub("tekKonfig-AboutPanel").new(nil, addonName)
+	self:RegisterEvent("UNIT_COMBO_POINTS")
+	self:RegisterEvent("PLAYER_REGEN_DISABLED")
+	self:RegisterEvent("PLAYER_REGEN_ENABLED")
+end
 
+function ToneDeaf:SetComboSpell(spell_link)
+	local found, _, itemString = string.find(itemLink, "^|c%x+|H(.+)|h%[.*%]")
+	if found then
+		self:Debug("SetComboSpell: " .. itemString)
+	else
+		self:Print("ERROR - Please provide a spell link")
+	end
+end
+
+function ToneDeaf:SetClosingSpell(spell_link)
+	self:DebugF(1, "SetClosingSpell: %s", spell_link or "Nothing")
+end
+
+function ToneDeaf:GetConfiguredSpell(points)
+	if points == 5 then
+		return "Rip"
+	else
+		return "Mangle - Cat"
+	end
+end
+
+function ToneDeaf.CheckCooldownsAndPoints(name, self)
 	if not self.inCombat then return end 
+
 	local points = GetComboPoints("player")
-
-	-- TODO: Pick the right spell
-	-- Spells
-	--   Rogues: Backstab/Mutil/SS and Rupture
-	--   Druids: Mangle and Rip
-
-	local spell = "Mangle - Cat"
+	local spell = self:GetConfiguredSpell(points)
 
 	if self:IsSpellReady(spell) and not self.soundPlayed then
-		self:Debug(1, "Playing sound. CP="..tostring(points))
 		self.soundPlayed = true
 		PlaySoundFile("Interface\\Addons\\"..addonName.."\\Sounds\\S"..points..".wav")
 	else
 		self:Debug(1, "Spell not ready. CP="..tostring(points))
 	end
-end
-
-function ToneDeaf:Enable()
-	LibStub("tekKonfig-AboutPanel").new(nil, addonName)
-
-	self:RegisterEvent("UNIT_COMBO_POINTS")
-	self:RegisterEvent("PLAYER_REGEN_DISABLED")
-	self:RegisterEvent("PLAYER_REGEN_ENABLED")
-
-	self:Debug(1, "ToneDeaf enabled")
 end
 
 function ToneDeaf:IsSpellReady(spellname)
@@ -84,27 +96,21 @@ function ToneDeaf:IsSpellReady(spellname)
 	local cd = select(2, GetSpellCooldown(spellname))
 
 	self:DebugF(1, "isUsable=%d, inRange=%d, cd=%d", isUsable or -1, inRange or -1 , cd or -1)
-
 	return (isUsable==1) and (inRange==1) and (cd == 0)
 end
 
---[[ Combo points handler ]]
 function ToneDeaf:UNIT_COMBO_POINTS()
 	self.soundPlayed = false
 end
 
---[[ Entering combat ]]
 function ToneDeaf:PLAYER_REGEN_DISABLED()
 	self.inCombat = true
-	self:ScheduleRepeatingTimer("TONEDEAF_TIMER", CheckCooldownsAndPoints, freq, self)
-	self:Debug(1, "Entering combat.")
+	self:ScheduleRepeatingTimer("TONEDEAF_TIMER", self.CheckCooldownsAndPoints, freq, self)
 end
 
---[[ Leaving combat ]]
 function ToneDeaf:PLAYER_REGEN_ENABLED()
 	self.inCombat = false
 	self.soundPlayed = false
 	self:CancelTimer("TONEDEAF_TIMER")
-	self:Debug(1, "Leaving combat.")
 end
 
