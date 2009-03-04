@@ -56,10 +56,11 @@ function ToneDeaf:Enable()
 end
 
 function ToneDeaf:SetComboSpell(spell_link)
-	local found, _, itemString = string.find(itemLink, "^|c%x+|H(.+)|h%[.*%]")
+	local found, _, itemString = string.find(spell_link, "^|c%x+|H(.+)|h%[.*%]")
 	if found then
-		self:Debug("SetComboSpell: " .. itemString)
+		self:Debug(1, "SetComboSpell: " .. itemString)
 	else
+		self:Debug(1, "No spell_link found in " .. spell_link)
 		self:Print("ERROR - Please provide a spell link")
 	end
 end
