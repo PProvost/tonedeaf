@@ -37,6 +37,9 @@ local IsUsableSpell = _G.IsUsableSpell
 local IsSpellInRange = _G.IsSpellInRange
 local PlaySoundFile = _G.PlaySoundFile
 
+local pointsSpellId = 48566
+local closingSpellId = 49800
+
 ToneDeaf = DongleStub("Dongle-1.1"):New(addonName)
 
 function ToneDeaf:Initialize()
@@ -44,8 +47,8 @@ function ToneDeaf:Initialize()
 	self.inCombat = false
 	self.soundPlayed = false
 	local cmd = self:InitializeSlashCommand(addonName, string.upper(addonName), string.lower(addonName))
-	cmd:RegisterSlashHandler("points <spell_link> - set the combo points spell", "^points (.+)$", "SetComboSpell")
-	cmd:RegisterSlashHandler("closing <spell_link> - set the closing spell", "^closing (.+)$", "SetClosingSpell")
+	cmd:RegisterSlashHandler("points <spell_link> - set the combo points spell", "points .*spell:(%d+).*$", "SetComboSpell")
+	cmd:RegisterSlashHandler("closing <spell_link> - set the closing spell", "closing .*spell:(%d+).*$", "SetClosingSpell")
 end
 
 function ToneDeaf:Enable()
@@ -55,29 +58,25 @@ function ToneDeaf:Enable()
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 end
 
-function ToneDeaf:SetComboSpell(spell_link)
-	local found, _, itemString = string.find(spell_link, "^|c%x+|H(.+)|h%[.*%]")
-	if found then
-		self:Debug(1, "SetComboSpell: " .. itemString)
-	else
-		self:Debug(1, "No spell_link found in " .. spell_link)
-		self:Print("ERROR - Please provide a spell link")
-	end
+function ToneDeaf:SetComboSpell(spell_id)
+	self:Debug(1, "SetComboSpell: " .. spell_id)
+	pointsSpellId = spell_id
 end
 
-function ToneDeaf:SetClosingSpell(spell_link)
-	self:DebugF(1, "SetClosingSpell: %s", spell_link or "Nothing")
+function ToneDeaf:SetClosingSpell(spell_id)
+	self:Debug(1, "SetClosingSpell: " .. spell_id)
+	closingSpellId = spell_id
 end
 
 function ToneDeaf:GetConfiguredSpell(points)
 	if points == 5 then
-		return "Rip"
+		return GetSpellInfo(closingSpellId)
 	else
-		return "Mangle - Cat"
+		return GetSpellInfo(pointsSpellId)
 	end
 end
 
-function ToneDeaf.CheckCooldownsAndPoints(name, self)
+local function CheckCooldownsAndPoints(name, self)
 	if not self.inCombat then return end 
 
 	local points = GetComboPoints("player")
@@ -106,7 +105,7 @@ end
 
 function ToneDeaf:PLAYER_REGEN_DISABLED()
 	self.inCombat = true
-	self:ScheduleRepeatingTimer("TONEDEAF_TIMER", self.CheckCooldownsAndPoints, freq, self)
+	self:ScheduleRepeatingTimer("TONEDEAF_TIMER", CheckCooldownsAndPoints, freq, self)
 end
 
 function ToneDeaf:PLAYER_REGEN_ENABLED()
