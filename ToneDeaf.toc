@@ -1,9 +1,9 @@
-## Interface: 30000
+## Interface: 30200
 
 ## Title: ToneDeaf
 ## Notes: Minimalistic addon that plays sounds when certain combat events happen.
 ## Author: Quaiche
-## Version: 1.0
+## Version: $project-version$
 ## OptionalDeps: tekDebug
 ## X-License: Apache 2.0
 ## X-Credits: Cat/rogue sounds borrowed from the now defunct ComboSounds
